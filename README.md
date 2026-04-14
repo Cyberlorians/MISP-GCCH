@@ -67,6 +67,7 @@ SSH to the MISP server and run the following:
 
 ```bash
 sudo mkdir -p /opt/misp2sentinel
+sudo chown $USER:$USER /opt/misp2sentinel
 cd /opt/misp2sentinel
 
 sudo apt install -y python3.12-venv
@@ -75,72 +76,31 @@ source venv/bin/activate
 pip install pymisp requests urllib3
 ```
 
----
-
-## Configure
-
-Create `/opt/misp2sentinel/config.py` and edit with your values:
-
-```python
-# ──────────────────────────────────────────────────────────────
-# MISP to Microsoft Sentinel — Configuration (GCC-H)
-# ──────────────────────────────────────────────────────────────
-# Edit the values below with your environment details.
-# Then run:  python3 script.py
-# ──────────────────────────────────────────────────────────────
-
-# ── Entra ID (from App Registration step) ──
-# Azure Portal → Microsoft Entra ID → App registrations → your app
-tenant_id      = "<your-tenant-id>"           # Directory (tenant) ID from the app's Overview page
-client_id      = "<your-app-client-id>"       # Application (client) ID from the app's Overview page
-client_secret  = "<your-client-secret>"       # Secret Value from Certificates & secrets (copy at creation)
-
-# ── GCC-H Endpoints ──
-# These are pre-set for GCC-H. Do NOT change unless you are on Commercial.
-# Commercial would use: login.microsoftonline.com / management.azure.com / api.ti.sentinel.azure.com
-authority_url  = "https://login.microsoftonline.us"
-scope          = "https://management.usgovcloudapi.net/.default"
-api_base       = "https://api.ti.sentinel.azure.us"
-api_version    = "2024-02-01-preview"
-
-# ── Sentinel Workspace ──
-# Log Analytics workspace backing Sentinel. Found on the workspace Overview page.
-workspace_id   = "<your-workspace-guid>"      # Log Analytics Workspace ID (GUID), NOT the name
-
-# ── MISP ──
-# Since this script runs on the MISP server itself, domain is localhost.
-# API key: cat /home/misp/MISP-authkey.txt  or  MISP web UI → Administration → List Users
-misp_domain    = "https://127.0.0.1"          # Leave as-is if script runs on the MISP server
-misp_key       = "<your-misp-api-key>"        # MISP admin API key (40-char string)
-misp_verifycert = False                       # False for self-signed cert (default MISP install)
-
-# ── Sync Settings ──
-days_to_expire = 30         # How long indicators stay valid in Sentinel before expiring
-days_lookback  = 7          # Pull MISP attributes created/modified in the last N days
-action         = "alert"    # "alert" = detect only, "block" = block + alert (requires EDR)
-passiveOnly    = False      # True = only push to_ids attributes flagged for IDS
-source_system  = "MISP"     # Shows as SourceSystem in Sentinel's ThreatIntelIndicators table
-batch_size     = 100        # Max STIX objects per API call (API hard limit is 100, do not increase)
-```
-
-> Your MISP API key is at: `cat /home/misp/MISP-authkey.txt` or in the MISP web UI under **Administration → List Users**.
-
----
-
-## Run
+> **Note:** `sudo mkdir` creates the directory as root. The `chown` command gives your user ownership so `python3 -m venv` and `pip install` work without permission errors.
 
 Download [`config.py`](https://raw.githubusercontent.com/Cyberlorians/MISP-GCCH/refs/heads/main/config.py) and [`script.py`](https://raw.githubusercontent.com/Cyberlorians/MISP-GCCH/refs/heads/main/script.py) from the repo:
 
 ```bash
-# From the MISP server:
 cd /opt/misp2sentinel
-sudo wget -O config.py https://raw.githubusercontent.com/Cyberlorians/MISP-GCCH/refs/heads/main/config.py
-sudo wget -O script.py https://raw.githubusercontent.com/Cyberlorians/MISP-GCCH/refs/heads/main/script.py
+wget -O config.py https://raw.githubusercontent.com/Cyberlorians/MISP-GCCH/refs/heads/main/config.py
+wget -O script.py https://raw.githubusercontent.com/Cyberlorians/MISP-GCCH/refs/heads/main/script.py
 ```
 
-Edit `config.py` with your values (see Configure section above), then run:
+---
 
-Then run:
+## Configure
+
+Edit `/opt/misp2sentinel/config.py` with your environment values. The file is commented — fill in the placeholders:
+
+- **tenant_id / client_id / client_secret** — from the App Registration step above
+- **workspace_id** — Log Analytics Workspace GUID from the Overview page
+- **misp_key** — your MISP admin API key (40-char string)
+
+> **Finding your MISP API key:** Run `sudo cat /root/misp_settings.txt` on the MISP server. The installer saves the admin API key there. You can also find it in the MISP web UI under **Administration → List Auth Keys**.
+
+---
+
+## Run
 
 ```bash
 cd /opt/misp2sentinel
@@ -161,6 +121,15 @@ Expected output:
 ---
 
 ## Cron Job
+
+Create the log file first:
+
+```bash
+sudo touch /var/log/misp2sentinel.log
+sudo chown $USER:$USER /var/log/misp2sentinel.log
+```
+
+Then add the cron entry:
 
 ```bash
 sudo crontab -e
@@ -194,7 +163,8 @@ ThreatIntelIndicators
 | Problem | Fix |
 |---|---|
 | `401 Unauthorized` | Check client_secret hasn't expired. Verify tenant_id. |
-| `403 Forbidden` | Sentinel Contributor role must be on the workspace, not the resource group. |
+| `403 Forbidden` (Sentinel) | Sentinel Contributor role must be on the workspace, not the resource group. |
+| `403 Forbidden` (MISP) | Wrong API key. MISP 2.5 uses hashed keys in `auth_keys` table — the legacy `users.authkey` column is empty. Get the real key from `sudo cat /root/misp_settings.txt` or the MISP UI under Administration → List Auth Keys. |
 | `404 Not Found` | Verify workspace_id is the GUID. Make sure URL has `threat-intelligence-stix-objects` (WITH hyphen). |
 | `0 attributes found` | MISP feeds may not be fetched yet. Run: `sudo -u www-data /var/www/MISP/app/Console/cake Server fetchFeed 1 all` |
 | No data in Sentinel | Query `ThreatIntelIndicators` (new table), NOT `ThreatIntelligenceIndicator` (legacy). |
