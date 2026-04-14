@@ -4,6 +4,8 @@
 
 The old method using `microsoftgraph/security-api-solutions` and the Graph API `ThreatIndicators.ReadWrite.OwnedBy` permission is **deprecated**. Microsoft replaced it with the [Threat Intelligence Upload STIX Objects API](https://learn.microsoft.com/en-us/azure/sentinel/stix-objects-api). This guide assumes MISP is already installed and running with feeds enabled. Below are the steps to connect MISP feeds to Microsoft Sentinel using the new API.
 
+> **Scripts:** Both `config.py` and `script.py` referenced in this guide are available in this repo. Download them or copy the contents below.
+
 | | Old Method (Dead) | New Method (This Guide) |
 |---|---|---|
 | **API** | Microsoft Graph `tiIndicators` | Sentinel STIX Upload API (Preview) |
@@ -127,7 +129,15 @@ batch_size     = 100        # Max STIX objects per API call (API hard limit is 1
 
 ## Run
 
-Place `script.py` alongside `config.py` in `/opt/misp2sentinel/`, then:
+Download [`script.py`](script.py) from this repo and place it alongside `config.py` in `/opt/misp2sentinel/`:
+
+```bash
+# From the MISP server:
+cd /opt/misp2sentinel
+sudo wget -O script.py https://raw.githubusercontent.com/Cyberlorians/Articles/main/script.py
+```
+
+Then run:
 
 ```bash
 cd /opt/misp2sentinel
