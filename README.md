@@ -4,7 +4,7 @@
 
 The old method using `microsoftgraph/security-api-solutions` and the Graph API `ThreatIndicators.ReadWrite.OwnedBy` permission is **deprecated**. Microsoft replaced it with the [Threat Intelligence Upload STIX Objects API](https://learn.microsoft.com/en-us/azure/sentinel/stix-objects-api). This guide assumes MISP is already installed and running with feeds enabled. Below are the steps to connect MISP feeds to Microsoft Sentinel using the new API.
 
-> **Scripts:** Both `config.py` and `script.py` referenced in this guide are available in this repo. Download them or copy the contents below.
+> **Scripts:** Both [`config.py`](https://github.com/Cyberlorians/MISP-GCCH/blob/main/config.py) and [`script.py`](https://github.com/Cyberlorians/MISP-GCCH/blob/main/script.py) referenced in this guide are available in the [MISP-GCCH](https://github.com/Cyberlorians/MISP-GCCH) repo. Download them or copy the contents below.
 
 | | Old Method (Dead) | New Method (This Guide) |
 |---|---|---|
@@ -129,13 +129,16 @@ batch_size     = 100        # Max STIX objects per API call (API hard limit is 1
 
 ## Run
 
-Download [`script.py`](script.py) from this repo and place it alongside `config.py` in `/opt/misp2sentinel/`:
+Download [`config.py`](https://raw.githubusercontent.com/Cyberlorians/MISP-GCCH/refs/heads/main/config.py) and [`script.py`](https://raw.githubusercontent.com/Cyberlorians/MISP-GCCH/refs/heads/main/script.py) from the repo:
 
 ```bash
 # From the MISP server:
 cd /opt/misp2sentinel
-sudo wget -O script.py https://raw.githubusercontent.com/Cyberlorians/Articles/main/script.py
+sudo wget -O config.py https://raw.githubusercontent.com/Cyberlorians/MISP-GCCH/refs/heads/main/config.py
+sudo wget -O script.py https://raw.githubusercontent.com/Cyberlorians/MISP-GCCH/refs/heads/main/script.py
 ```
+
+Edit `config.py` with your values (see Configure section above), then run:
 
 Then run:
 
